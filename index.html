@@ -516,13 +516,33 @@
 
     /* ── HIDDEN YT PLAYER ── */
     #yt-wrap {
-      position: fixed; bottom: -400px; left: -400px;
-      width: 1px; height: 1px; overflow: hidden;
-      pointer-events: none;
+      position: fixed; bottom: -260px; right: -360px;
+      width: 320px; height: 180px;
+      overflow: hidden; pointer-events: none;
+      z-index: -1;
     }
+
+    /* ── MUSIC BUTTON ── */
+    #music-btn {
+      position: fixed; top: 18px; left: 18px;
+      z-index: 9994;
+      background: rgba(8,8,8,.88);
+      border: 1px solid var(--g3);
+      color: var(--g5);
+      padding: 7px 16px;
+      font-family: 'Special Elite', serif;
+      font-size: .58rem; letter-spacing: .38em; text-transform: uppercase;
+      cursor: pointer; transition: all .25s;
+      backdrop-filter: blur(4px);
+    }
+    #music-btn:hover { border-color: var(--g5); color: var(--off-white); }
+    #music-btn.playing { color: var(--off-white); border-color: var(--g4); }
   </style>
 </head>
 <body>
+
+<!-- Music toggle button -->
+<button id="music-btn">♪ sound</button>
 
 <!-- Music indicator -->
 <div id="music-ind">
@@ -822,10 +842,10 @@ function onScroll() {
   const flash = p > 0.62 ? (p - 0.62) / 0.38 : 0;
   flashOverlay.style.opacity = Math.min(flash, 1);
 
-  // Start music at 68%
+  // Unmute at 68% scroll (scroll = user gesture, unMute() is always safe here)
   if (p >= 0.68 && !musicStarted) {
     musicStarted = true;
-    tryPlayMusic();
+    doUnmute(45);
   }
 
   // Auto-scroll to main at 88%
@@ -842,82 +862,126 @@ onScroll();
 
 /* ═══════════════════════════════════════════
    YOUTUBE MUSIC
-   Entry / soft: w2jg-hi2QhM (acoustic)
-   Main song:    KvSxWV9rcbw (Lata Mangeshkar original)
+   Strategy: create player with autoplay:1 + mute:1 (muted autoplay is
+   always allowed by browsers). On scroll trigger OR button click, call
+   unMute() — that instant is the user gesture which browsers allow.
+   Entry:  w2jg-hi2QhM (acoustic / soft version)
+   Main:   KvSxWV9rcbw (Lata Mangeshkar original vocal)
 ════════════════════════════════════════════ */
-const YT_ENTRY = 'w2jg-hi2QhM';  // acoustic version — plays on scroll trigger
-const YT_MAIN  = 'KvSxWV9rcbw';  // original vocal — plays after transition
+const YT_ENTRY = 'w2jg-hi2QhM';
+const YT_MAIN  = 'KvSxWV9rcbw';
 
-let ytPlayer   = null;
-let ytReady    = false;
-let pendingPlay = false;
-let mainPhase  = false;  // true when main content is visible
+let ytPlayer    = null;
+let ytReady     = false;
+let isMuted     = true;
+let mainPhase   = false;
+let pendingUnmute = false;
+
+const musicBtn  = document.getElementById('music-btn');
 
 window.onYouTubeIframeAPIReady = function() {
-  ytReady = true;
   ytPlayer = new YT.Player('yt-player', {
-    height: '1', width: '1',
+    height: '180', width: '320',
     videoId: YT_ENTRY,
-    playerVars: { autoplay: 0, controls: 0, loop: 1, playlist: YT_ENTRY, modestbranding: 1, fs: 0 },
+    playerVars: {
+      autoplay: 1,          // start buffering & playing immediately
+      mute: 1,              // but fully muted — always allowed
+      controls: 0,
+      disablekb: 1,
+      loop: 1,
+      playlist: YT_ENTRY,
+      modestbranding: 1,
+      fs: 0, rel: 0,
+    },
     events: {
       onReady(e) {
-        if (pendingPlay) { e.target.playVideo(); fadeVol(e.target, 0, 40); }
+        ytReady = true;
+        e.target.playVideo();
+        if (pendingUnmute) doUnmute(45);
       },
       onStateChange(e) {
-        if (e.data === YT.PlayerState.PLAYING) {
-          musicInd.classList.add('on');
-        }
+        // Ensure looping
+        if (e.data === 0) { try { ytPlayer.playVideo(); } catch(_) {} }
       }
     }
   });
 };
 
-function tryPlayMusic() {
-  if (!ytReady || !ytPlayer) { pendingPlay = true; return; }
-  ytPlayer.playVideo();
-  fadeVol(ytPlayer, 0, 40);
+function doUnmute(targetVol) {
+  targetVol = targetVol || 45;
+  if (!ytReady || !ytPlayer) { pendingUnmute = true; return; }
+  try {
+    ytPlayer.unMute();
+    ytPlayer.setVolume(0);
+    isMuted = false;
+    pendingUnmute = false;
+    musicInd.classList.add('on');
+    musicBtn.textContent = '♫ mute';
+    musicBtn.classList.add('playing');
+    let v = 0;
+    const iv = setInterval(() => {
+      v = Math.min(v + 2, targetVol);
+      try { ytPlayer.setVolume(v); } catch(_) {}
+      if (v >= targetVol) clearInterval(iv);
+    }, 55);
+  } catch(e) {}
 }
 
-function fadeVol(p, from, to) {
-  let v = from;
-  try { p.setVolume(v); } catch(e) { return; }
-  const iv = setInterval(() => {
-    v = Math.min(v + 1.5, to);
-    try { p.setVolume(v); } catch(e) { clearInterval(iv); return; }
-    if (v >= to) clearInterval(iv);
-  }, 80);
+function doMute() {
+  if (!ytPlayer) return;
+  try {
+    ytPlayer.mute();
+    isMuted = true;
+    musicInd.classList.remove('on');
+    musicBtn.textContent = '♪ sound';
+    musicBtn.classList.remove('playing');
+  } catch(e) {}
 }
 
-// Switch to full song when main content is scrolled into view
+// Music button: manual toggle (button click is always a valid user gesture)
+musicBtn.addEventListener('click', () => {
+  if (isMuted) {
+    doUnmute(55);
+    musicStarted = true;
+  } else {
+    doMute();
+  }
+});
+
+// Switch to full vocal song when main content enters view
 const mainObserver = new IntersectionObserver(entries => {
   entries.forEach(e => {
-    if (e.isIntersecting && !mainPhase && musicStarted) {
+    if (e.isIntersecting && !mainPhase && !isMuted) {
       mainPhase = true;
-      switchToMainSong();
+      crossfadeToMain();
     }
   });
 }, { threshold: 0.15 });
 mainObserver.observe(mainContent);
 
-function switchToMainSong() {
-  if (!ytPlayer) return;
-  // Crossfade: fade out current, load new, fade in
-  let cv = 40;
-  const fadeOut = setInterval(() => {
-    cv -= 3;
-    try { ytPlayer.setVolume(Math.max(cv, 0)); } catch(e) {}
+function crossfadeToMain() {
+  if (!ytPlayer || isMuted) return;
+  let cv = 45;
+  const out = setInterval(() => {
+    cv = Math.max(cv - 3, 0);
+    try { ytPlayer.setVolume(cv); } catch(_) {}
     if (cv <= 0) {
-      clearInterval(fadeOut);
+      clearInterval(out);
       try {
         ytPlayer.loadVideoById({ videoId: YT_MAIN, startSeconds: 0 });
         ytPlayer.playVideo();
-        fadeVol(ytPlayer, 0, 65);
-      } catch(e) {}
+        let v = 0;
+        const iv = setInterval(() => {
+          v = Math.min(v + 2, 65);
+          try { ytPlayer.setVolume(v); } catch(_) {}
+          if (v >= 65) clearInterval(iv);
+        }, 55);
+      } catch(_) {}
     }
-  }, 80);
+  }, 70);
 }
 
-// Load YouTube API
+// Load YouTube IFrame API
 (function() {
   const tag = document.createElement('script');
   tag.src = 'https://www.youtube.com/iframe_api';
