@@ -246,12 +246,15 @@
 
     /* ── CARDS ── */
     .cards-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 32px; margin-bottom: 80px;
+      display: flex;
+      justify-content: center;
+      margin-bottom: 80px;
     }
 
-    @media (max-width: 820px) { .cards-row { grid-template-columns: 1fr; } }
+    .cards-row .card {
+      max-width: 780px;
+      width: 100%;
+    }
 
     .card {
       border: 1px solid var(--g3);
@@ -628,41 +631,25 @@
       <h2 class="section-title">Still Falling.</h2>
     </div>
 
-    <!-- Two Cards -->
+    <!-- Card: 10 Reasons -->
     <div class="cards-row">
-
-      <!-- Card 1: 10 Reasons -->
       <div class="card">
         <div class="corner-tl"></div>
         <div class="card-tag">№ 11 — 20</div>
-        <h3 class="card-title">10 Things After 10 Months<br>That Still Make Riya Awesome</h3>
+        <h3 class="card-title">10 Things After 10 Months<br>That Make Riya Awesome</h3>
         <ol class="reasons-list">
-          <li>She doesn't just enter hackathons — she <strong>wins</strong> them. IEEE first place, TechSprint champion. She collects trophies the way other people collect excuses not to try.</li>
-          <li>She can walk up to a projector screen, open her mouth in front of a crowd, and make every single person lean forward. That kind of presence isn't taught — it's hers.</li>
-          <li>She is the <strong>Actual, Official, Trophy-Holding Musical Chair Champion</strong> of the world. There is photographic evidence. The plaque says so.</li>
-          <li>She turns every mirror she passes into a whole moment. Leopard print, grey tank, red ruffles — she makes every single thing look like it was made for her.</li>
-          <li>She climbs on shoulders at concerts and screams every word to the song and it is, genuinely, the most alive thing I have ever seen.</li>
-          <li>She made flowers in someone's hair look like a poem once. Just by being the one to put them there.</li>
-          <li>She makes video calls feel like the best part of any day — even when she's making <em>that face</em> into the camera from two centimetres away.</li>
-          <li>She could turn two shadows on the pavement into the most beautiful photograph in the world. Jan 23, 15:38. I will never forget.</li>
-          <li>She shows up to present a whole AI system at a hackathon, carries the room entirely, and then sits down like it was nothing. It is never nothing.</li>
-          <li>She made 10 months feel like a beginning. Not a milestone — a <strong>beginning</strong>.</li>
+          <li>She has learnt a lot and she is really humble about it.</li>
+          <li>She makes me feel like I have a home.</li>
+          <li>She can be the stupidest face and yet talk about stuff that woos off people.</li>
+          <li>She lets me be myself. I find peace with her stupidity.</li>
+          <li>She even though coming from a rich background has never made me feel poor — she is really graceful.</li>
+          <li>She is the cutest, fluffiest, chakudiest person I have met and yet she is sooooooo smart.</li>
+          <li>I can imagine us doing the stupidest things together without having a care in the world.</li>
+          <li>How she can be really fierce for her fights and really soft for others.</li>
+          <li>I have seen her fight through medicines, exams and juggling 3 internships without a sweat with a dual degree. I know your parents scolded you, they love you sugar, I know how hard you have worked. I am so proud of you to grow so much in these months &amp; I hope you do in the years to come. <strong>I fucking LOVE you!</strong></li>
+          <li>Ofcourse you must be awesome! You are Khelan's girlfriend, you have me!! He he he he.. ♡</li>
         </ol>
       </div>
-
-      <!-- Card 2: Love Letter -->
-      <div class="card">
-        <div class="corner-tl"></div>
-        <div class="card-tag">from me, with everything</div>
-        <h3 class="card-title">What I Keep Trying To Say</h3>
-        <div class="love-letter">
-          <p class="dropcap">There is a version of me from before all of this — before your laugh and your glasses and your completely unhinged competitive streak — and I genuinely have no idea what that version was doing with his time. You walked in, and quietly, without announcement, rearranged the whole thing. Not loudly. Not all at once. The way a song gets inside you before you realise you're already humming it.</p>
-          <p>I fell in love with how hard you work. How you hold your arguments like they're something sacred and worth protecting. How you show up for the people you love — fully, without hesitation — with a kind of loyalty that some people spend their whole lives looking for.</p>
-          <p>I fell in love with the way you feel things. A song becomes a whole memory. A shadow on the ground becomes the most romantic photograph. You make the most ordinary Tuesday feel like something worth keeping.</p>
-          <p>Ten months ago I didn't know a song could carry something this large. That I'd be here, still finding new words for it, still not quite getting there. Here are ten more attempts. There will be ten more after those. And ten more after those. Because you, Riya — you are the kind of person worth running out of words over.</p>
-        </div>
-      </div>
-
     </div>
 
     <!-- Gallery -->
