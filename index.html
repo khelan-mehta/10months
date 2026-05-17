@@ -558,9 +558,116 @@
       font-size: .55rem; letter-spacing: .55em;
       text-transform: uppercase; color: var(--g5);
     }
+
+    /* ── OPENING SCENE — CINEMA CURTAINS ── */
+    #opening-scene {
+      position: fixed; inset: 0;
+      z-index: 200; overflow: hidden;
+    }
+    #opening-scene.opened { pointer-events: none; }
+
+    .curtain {
+      position: absolute; top: 0; bottom: 0; width: 51%;
+      background-color: #060606;
+      background-image:
+        repeating-linear-gradient(
+          90deg,
+          rgba(255,255,255,.028) 0,  rgba(255,255,255,.028) 1px,
+          transparent 1px,           transparent 18px,
+          rgba(255,255,255,.016) 18px,rgba(255,255,255,.016) 19px,
+          transparent 19px,          transparent 38px
+        );
+      transition: transform 1.9s cubic-bezier(.86,0,.07,1);
+      z-index: 1;
+    }
+    #curtain-l { left: 0; }
+    #curtain-r { right: 0; }
+    #opening-scene.opened #curtain-l { transform: translateX(-102%); }
+    #opening-scene.opened #curtain-r { transform: translateX(102%); }
+
+    /* Film perforation strips top & bottom of curtain */
+    .scene-perfs {
+      position: absolute; left: 0; right: 0; height: 20px;
+      background: #030303; z-index: 3;
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 8px; overflow: hidden;
+    }
+    .scene-perfs.top    { top: 0;    border-bottom: 1px solid #181818; }
+    .scene-perfs.bottom { bottom: 0; border-top:    1px solid #181818; }
+    .sp-hole {
+      flex-shrink: 0; width: 10px; height: 8px;
+      border: 1px solid #1f1f1f; border-radius: 1px; background: #010101;
+    }
+
+    /* Center "I love you" content */
+    #ilove-center {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 4; text-align: center; cursor: pointer;
+      transition: opacity .7s ease;
+    }
+    #ilove-center.fade { opacity: 0; pointer-events: none; }
+
+    .ilove-eyebrow {
+      font-family: 'Special Elite', serif;
+      font-size: .62rem; letter-spacing: .65em; text-transform: uppercase;
+      color: var(--g5); margin-bottom: 22px;
+    }
+
+    #ilove-btn-text {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(3.2rem, 10vw, 7rem);
+      font-weight: 700; font-style: italic;
+      color: #fff; line-height: 1;
+      text-shadow: 0 0 80px rgba(255,255,255,.05);
+      transition: text-shadow .4s;
+      user-select: none;
+      background: none; border: none; cursor: pointer; padding: 0;
+    }
+    #ilove-center:hover #ilove-btn-text {
+      text-shadow: 0 0 60px rgba(255,255,255,.22);
+    }
+
+    .ilove-sub {
+      font-family: 'Special Elite', serif;
+      font-size: .58rem; letter-spacing: .5em; text-transform: uppercase;
+      color: var(--g4); margin-top: 22px;
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+
+    /* Edge shadow on curtains for depth */
+    #curtain-l::after {
+      content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 40px;
+      background: linear-gradient(to right, transparent, rgba(0,0,0,.6));
+    }
+    #curtain-r::before {
+      content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 40px;
+      background: linear-gradient(to left, transparent, rgba(0,0,0,.6));
+    }
   </style>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════
+     OPENING SCENE — cinema curtains
+════════════════════════════════════════════ -->
+<div id="opening-scene">
+  <!-- Curtains -->
+  <div class="curtain" id="curtain-l"></div>
+  <div class="curtain" id="curtain-r"></div>
+
+  <!-- Film perf strips -->
+  <div class="scene-perfs top"    id="sp-top"></div>
+  <div class="scene-perfs bottom" id="sp-bot"></div>
+
+  <!-- Clickable center -->
+  <div id="ilove-center">
+    <div class="ilove-eyebrow">— a film for riya —</div>
+    <button id="ilove-btn-text">I love you</button>
+    <div class="ilove-sub">click to begin ↓</div>
+  </div>
+</div>
 
 <!-- Music toggle button -->
 <button id="music-btn">♪ sound</button>
@@ -931,14 +1038,37 @@ function doMute() {
   } catch(e) {}
 }
 
-// Visible ♪ prompt — most reliable because it's a direct intentional click
-musicPrompt.addEventListener('click', doUnmute);
+// ── CINEMA CURTAIN OPEN ──
+const openingScene = document.getElementById('opening-scene');
+const iloveCenter  = document.getElementById('ilove-center');
 
-// Also fires on first scroll (scroll = valid user gesture in all browsers)
-window.addEventListener('scroll', function onFirstScroll() {
+// Build perf holes for the curtain strips
+['sp-top','sp-bot'].forEach(id => {
+  const bar = document.getElementById(id);
+  for (let i = 0; i < 70; i++) {
+    const h = document.createElement('div');
+    h.className = 'sp-hole'; bar.appendChild(h);
+  }
+});
+
+iloveCenter.addEventListener('click', () => {
+  // Button click IS the user gesture — unmute fires reliably here
   doUnmute();
-  window.removeEventListener('scroll', onFirstScroll);
-}, { passive: true });
+
+  // Fade out the text first, then sweep curtains open
+  iloveCenter.classList.add('fade');
+
+  setTimeout(() => { openingScene.classList.add('opened'); }, 250);
+
+  // Remove the scene entirely after curtains finish sweeping
+  setTimeout(() => {
+    openingScene.style.display = 'none';
+    musicPrompt.classList.add('hidden');
+  }, 2400);
+});
+
+// Music-prompt click (visible in hero after curtains open)
+musicPrompt.addEventListener('click', doUnmute);
 
 // Button toggle
 musicBtn.addEventListener('click', e => {
