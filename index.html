@@ -540,6 +540,24 @@
     }
     #music-btn:hover { border-color: var(--g5); color: var(--off-white); }
     #music-btn.playing { color: var(--off-white); border-color: var(--g4); }
+
+    /* ── MUSIC PROMPT (hero overlay) ── */
+    #music-prompt {
+      position: absolute; bottom: 90px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 25; display: flex; flex-direction: column;
+      align-items: center; gap: 6px;
+      cursor: pointer;
+      animation: pulse 2.5s ease-in-out infinite;
+      transition: opacity .5s;
+    }
+    #music-prompt.hidden { opacity: 0; pointer-events: none; }
+    .mp-note { font-size: 2rem; color: rgba(255,255,255,.55); line-height: 1; }
+    .mp-label {
+      font-family: 'Special Elite', serif;
+      font-size: .55rem; letter-spacing: .55em;
+      text-transform: uppercase; color: var(--g5);
+    }
   </style>
 </head>
 <body>
@@ -614,6 +632,12 @@
     </div>
 
     <div id="scroll-hint">scroll ↓</div>
+
+    <!-- Music prompt — prominent tap target -->
+    <div id="music-prompt">
+      <div class="mp-note">♪</div>
+      <div class="mp-label">tap for sound</div>
+    </div>
   </section>
 </div>
 
@@ -691,8 +715,14 @@
   <div class="modal-film-bar bottom" id="modal-bot"></div>
 </div>
 
-<!-- Hidden YouTube player -->
-<div id="yt-wrap"><div id="yt-player"></div></div>
+<!-- YouTube player — static iframe so the browser starts buffering immediately -->
+<div id="yt-wrap">
+  <iframe id="yt-iframe"
+    src="https://www.youtube.com/embed/TfwSD78az-A?autoplay=1&mute=1&loop=1&playlist=TfwSD78az-A&controls=0&enablejsapi=1&rel=0&playsinline=1&iv_load_policy=3"
+    allow="autoplay; encrypted-media; picture-in-picture"
+    allowfullscreen frameborder="0">
+  </iframe>
+</div>
 
 <script>
 /* ═══════════════════════════════════════════
@@ -841,60 +871,52 @@ window.addEventListener('scroll', onScroll, { passive: true });
 onScroll();
 
 /* ═══════════════════════════════════════════
-   YOUTUBE MUSIC — TfwSD78az-A (single video, plays throughout)
-   Muted autoplay loads immediately; unMute fires on first scroll
-   or first click so it "plays by default" the moment the user lands.
+   YOUTUBE MUSIC
+   Static iframe in HTML ensures the browser starts buffering immediately.
+   YT.Player wraps the existing iframe (no div-replacement race condition).
+   Muted autoplay is universally allowed; unMute() fires on first user
+   gesture (scroll, click, or the visible ♪ prompt).
 ════════════════════════════════════════════ */
-const YT_ID = 'TfwSD78az-A';
-
 let ytPlayer      = null;
 let ytReady       = false;
 let isMuted       = true;
 let pendingUnmute = false;
 
-const musicBtn = document.getElementById('music-btn');
+const musicBtn    = document.getElementById('music-btn');
+const musicPrompt = document.getElementById('music-prompt');
 
 window.onYouTubeIframeAPIReady = function() {
-  ytPlayer = new YT.Player('yt-player', {
-    height: '180', width: '320',
-    videoId: YT_ID,
-    playerVars: {
-      autoplay: 1, mute: 1,        // muted autoplay — always allowed
-      controls: 0, disablekb: 1,
-      loop: 1, playlist: YT_ID,
-      modestbranding: 1, fs: 0, rel: 0,
-    },
+  // Wrap the EXISTING static iframe — avoids the div-replacement timing bug
+  ytPlayer = new YT.Player('yt-iframe', {
     events: {
       onReady(e) {
         ytReady = true;
-        e.target.playVideo();
+        try { e.target.playVideo(); } catch(_) {}   // ensure playing
         if (pendingUnmute) doUnmute();
       },
       onStateChange(e) {
-        if (e.data === 0) { try { ytPlayer.playVideo(); } catch(_) {} }
+        // Restart when ended (loop param sometimes ignored for long videos)
+        if (e.data === 0) {
+          try { ytPlayer.seekTo(0); ytPlayer.playVideo(); } catch(_) {}
+        }
       }
     }
   });
 };
 
 function doUnmute() {
-  if (!ytReady || !ytPlayer) { pendingUnmute = true; return; }
   if (!isMuted) return;
+  if (!ytReady || !ytPlayer) { pendingUnmute = true; return; }
   try {
     ytPlayer.unMute();
-    ytPlayer.setVolume(0);
+    ytPlayer.setVolume(65);
     isMuted = false;
     pendingUnmute = false;
     musicInd.classList.add('on');
     musicBtn.textContent = '♫ mute';
     musicBtn.classList.add('playing');
-    let v = 0;
-    const iv = setInterval(() => {
-      v = Math.min(v + 2, 60);
-      try { ytPlayer.setVolume(v); } catch(_) {}
-      if (v >= 60) clearInterval(iv);
-    }, 50);
-  } catch(e) {}
+    musicPrompt.classList.add('hidden');
+  } catch(e) { console.warn('YT unMute error:', e); }
 }
 
 function doMute() {
@@ -905,22 +927,20 @@ function doMute() {
     musicInd.classList.remove('on');
     musicBtn.textContent = '♪ sound';
     musicBtn.classList.remove('playing');
+    musicPrompt.classList.remove('hidden');
   } catch(e) {}
 }
 
-// Unmute on first scroll — feels like "plays by default"
-window.addEventListener('scroll', function firstScroll() {
+// Visible ♪ prompt — most reliable because it's a direct intentional click
+musicPrompt.addEventListener('click', doUnmute);
+
+// Also fires on first scroll (scroll = valid user gesture in all browsers)
+window.addEventListener('scroll', function onFirstScroll() {
   doUnmute();
-  window.removeEventListener('scroll', firstScroll);
+  window.removeEventListener('scroll', onFirstScroll);
 }, { passive: true });
 
-// Also unmute on first click anywhere (fallback for touchscreens)
-window.addEventListener('click', function firstClick() {
-  doUnmute();
-  window.removeEventListener('click', firstClick);
-}, { once: true });
-
-// Button: manual mute / unmute toggle
+// Button toggle
 musicBtn.addEventListener('click', e => {
   e.stopPropagation();
   isMuted ? doUnmute() : doMute();
